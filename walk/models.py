@@ -61,8 +61,9 @@ class Walks(models.Model):
         _('responsible of activity'),
         max_length=20,
     )
+    good_practices = models.TextField()
     findings = models.ManyToManyField(
-        'Findings',
+        Findings,
         help_text='characterization of the findings',
     )
     comments_findings = models.TextField(
@@ -93,7 +94,7 @@ class Walks(models.Model):
         blank=True,
     )
     registered = models.ForeignKey(
-        'User',
+        User,
         help_text='registrado by user'
     )
 
@@ -109,7 +110,7 @@ class Walks(models.Model):
 
 class Commitments(models.Model):
     number_walk = models.ForeignKey(
-        'Walks',
+        Walks,
     )
     description = models.CharField(
         max_length=150,
