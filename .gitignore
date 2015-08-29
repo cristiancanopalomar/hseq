@@ -4,3 +4,7 @@ hseq/__init__.py
 hseq/settings.py
 
 hseq/wsgi.py
+
+db.sqlite3
+
+*.pyc
