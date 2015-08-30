@@ -1,14 +1,15 @@
 from django.contrib import admin
-from .models import Findings, Walks, Commitments
+from .models import Findings, Walks, Commitments, Supports
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 
 class CommitmentsInline(admin.TabularInline):
     model=Commitments
     extra=0
+    can_delete=False
+    exclude = ('closing',)
     readonly_fields=('date',)
     raw_id_fields=('number_walk',)
-    can_delete=False
 
 class CommitmentsAdmin(admin.ModelAdmin):
     fieldsets = (
@@ -18,10 +19,11 @@ class CommitmentsAdmin(admin.ModelAdmin):
                     'description',
                     'date',
                     'user_name',
+                    'closing',
                 )
             }),
     )
-    list_display = ('number_walk', 'description', 'date', 'user_name',)
+    list_display = ('number_walk', 'description', 'date', 'user_name', 'closing',)
     list_filter = ('user_name', 'date',)
     search_fields = ['number_walk', 'description', 'user_name',]
     readonly_fields = ('date',)
@@ -84,6 +86,25 @@ class WalksAdmin(admin.ModelAdmin):
     inlines = [CommitmentsInline,]
 
 
+class SupportsAdmin(admin.ModelAdmin):
+    fieldsets = (
+        (_('support commitments'), {
+            'fields': (
+                    'commitments',
+                    'support',
+                    'date',
+                    'description',
+                )
+            }),
+    )
+    list_display = ('commitments', 'support', 'date', 'description',)
+    list_filter = ('commitments', 'date',)
+    search_fields = ['commitments', 'description',]
+    readonly_fields = ('date',)
+    raw_id_fields = ['commitments',]
+
+
 admin.site.register(Findings, FindingsAdmin)
 admin.site.register(Walks, WalksAdmin)
 admin.site.register(Commitments, CommitmentsAdmin)
+admin.site.register(Supports, SupportsAdmin)

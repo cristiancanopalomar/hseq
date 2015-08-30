@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from rename import rename_file
+from .tasks import email_commitments
 from django.utils.translation import ugettext_lazy as _
 
 
@@ -74,18 +76,18 @@ class Walks(models.Model):
     )
     image_1 = models.ImageField(
         upload_to=rename_file(
-            'upload/hseq/walk/walks',
+            'upload/hseq/walk/walks/',
         ),
     )
     image_2 = models.ImageField(
         upload_to=rename_file(
-            'upload/hseq/walk/walks',
+            'upload/hseq/walk/walks/',
         ),
         blank=True,
     )
     image_3 = models.ImageField(
         upload_to=rename_file(
-            'upload/hseq/walk/walks',
+            'upload/hseq/walk/walks/',
         ),
         blank=True,
     )
@@ -97,7 +99,6 @@ class Walks(models.Model):
         User,
         help_text='registrado by user'
     )
-
 
     class Meta:
         unique_together = ('number_walk', 'creation_walks', 'registered',)
@@ -121,3 +122,66 @@ class Commitments(models.Model):
     user_name = models.CharField(
         max_length=25,
     )
+    closing = models.BooleanField(
+        default=False,
+    )
+
+    class Meta:
+        unique_together = ('number_walk', 'description', 'user_name',)
+        verbose_name = u'Commitment'
+        verbose_name_plural = u'Commitments'
+
+    def __unicode__(self):
+        return unicode(self.number_walk)
+
+# signals
+@receiver(post_save, sender=Commitments)
+def signals_commitments(sender, instance, created, **kwargs):
+    if created:
+        fm_em = Walks.objects.all().values_list(
+            'registered__email',
+            flat=True,
+        ).filter(
+            number_walk=instance.number_walk,
+        )
+        to_em = User.objects.all().values_list(
+            'email',
+            flat=True,
+        ).filter(
+            user_name=instance.user_name,
+        )
+        nb_wl = instance.number_walk
+        ds_wl = instance.description
+        email_commitments.delay(fm_em, to_em, nb_wl, ds_wl)
+
+
+class Supports(models.Model):
+    commitments = models.ForeignKey(
+        Commitments,
+    )
+    support = models.ImageField(
+        upload_to=rename_file(
+            'upload/hseq/walk/supports/',
+        ),
+    )
+    date = models.DateTimeField(
+        auto_now_add=True,
+    )
+    description = models.TextField()
+
+    class Meta:
+        verbose_name = u'Support'
+        verbose_name_plural = u'Supports'
+
+    def __unicode__(self):
+        return unicode(self.commitments)
+
+# signals
+@receiver(post_save, sender=Supports)
+def signals_supports(sender, instance, created, **kwargs):
+    if created:
+        Commitments.objects.all().filter(
+            id=instance.commitments,
+        ).update(
+            closing=True,
+        )
